@@ -1,0 +1,4 @@
+e:
+cd E:\НУ ЛП\II курс\I семестр\ПП\ЛР-6
+
+alembic upgrade head
