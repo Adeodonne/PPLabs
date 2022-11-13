@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, relationship, declarative_base, scoped_
 from sqlalchemy_serializer import SerializerMixin
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
-engine = create_engine() # your database
+engine = create_engine('mysql+pymysql://root:31012004!Q@127.0.0.1:3306/deliveryserviceupdated')
 SessionFactory = sessionmaker(bind=engine)
 Session = scoped_session(SessionFactory)
 Base = declarative_base()
@@ -53,7 +53,7 @@ class User(Base, CustomSerializerMixin):
 	fullName = Column('fullName', String(60), nullable=False)
 	address = Column('address', String(45), nullable=False)
 	idCity = Column('idCity', Integer, ForeignKey(City.id), nullable=False)
-	city = relationship(City, backref='user', lazy='joined')
+	#city = relationship(City, backref='user', lazy='joined')
 	phoneNumber = Column('phoneNumber', String(13), nullable=False)
 	password = Column('password', String(60), nullable=False)
 	role = Column('role', Integer, nullable=False)
@@ -110,7 +110,7 @@ class Seller(Base, CustomSerializerMixin):
 	volume = Column('volume', Integer, nullable=False)
 
 	idPostOfficeSender = Column('idPostOfficeSender', Integer, ForeignKey(PostOffice.id), nullable=False)
-	postOfficeSender = relationship(PostOffice, backref='Seller', lazy='joined')
+	#postOfficeSender = relationship(PostOffice, backref='Seller', lazy='joined')
 
 	sendTime = Column('sendTime', DATETIME, nullable=False)
 	description = Column('description', String(200))
@@ -131,21 +131,21 @@ class Shipment(Base, CustomSerializerMixin):
 	id = Column('id', Integer, primary_key=True, autoincrement=True, nullable=False)
 
 	idUser = Column('idUser', Integer, ForeignKey(User.id), nullable=False)
-	user = relationship(User, backref='shipment', lazy='joined')
+	#user = relationship(User, backref='shipment', lazy='joined')
 
 	idShipmentType = Column('idShipmentType', Integer, ForeignKey(ShipmentType.id), nullable=False)
-	shipmentType = relationship(ShipmentType, backref='shipment', lazy='joined')
+	#shipmentType = relationship(ShipmentType, backref='shipment', lazy='joined')
 
 	reciveTime = Column('reciveTime', DATETIME)
 
 	idPostOffice = Column('idPostOffice', Integer, ForeignKey(PostOffice.id), nullable=False)
-	postOffice = relationship(PostOffice, backref='shipment', lazy='joined')
+	#postOffice = relationship(PostOffice, backref='shipment', lazy='joined')
 
 	idProductType = Column('idProductType', Integer, ForeignKey(ProductType.id), nullable=False)
-	productType = relationship(ProductType, backref='shipment', lazy='joined')
+	#productType = relationship(ProductType, backref='shipment', lazy='joined')
 
 	idSeller = Column('idSeller', Integer, ForeignKey(Seller.id), nullable=False)
-	seller = relationship(Seller, backref='shipment', lazy='joined')
+	#seller = relationship(Seller, backref='shipment', lazy='joined')
 
 class ShipmentSchema(SQLAlchemyAutoSchema):
 	class Meta:
