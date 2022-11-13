@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, relationship, declarative_base, scoped_
 from sqlalchemy_serializer import SerializerMixin
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
-engine = create_engine()
+engine = create_engine('mysql+pymysql://root:12345678!Q@127.0.0.1:3306/deliveryserviceupdated')
 SessionFactory = sessionmaker(bind=engine)
 Session = scoped_session(SessionFactory)
 Base = declarative_base()
