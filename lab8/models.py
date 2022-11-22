@@ -4,17 +4,19 @@ from sqlalchemy.orm import sessionmaker, relationship, declarative_base, scoped_
 from sqlalchemy_serializer import SerializerMixin
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
-engine = create_engine() # your database
+engine = create_engine("mysql+mysqlconnector://root:root@localhost:3306/deliveryserviceupdated")
 SessionFactory = sessionmaker(bind=engine)
 Session = scoped_session(SessionFactory)
 Base = declarative_base()
 Base.metadata.create_all(bind=engine)
 session = Session()
 
+
 class CustomSerializerMixin(SerializerMixin):
 	serialize_types = (
 		(UUID, lambda x: str(x)),
 	)
+
 
 class Country(Base, CustomSerializerMixin):
 	__tablename__ = 'country'
@@ -23,6 +25,7 @@ class Country(Base, CustomSerializerMixin):
 
 	id = Column('id', Integer, primary_key = True, autoincrement = True, nullable = False)
 	countryName = Column('countryName', String(45), nullable = False)
+
 
 class State(Base, CustomSerializerMixin):
 	__tablename__ = 'state'
@@ -34,6 +37,7 @@ class State(Base, CustomSerializerMixin):
 	idCountry = Column('idCountry', Integer, ForeignKey(Country.id), nullable = False)
 	country = relationship(Country, backref='state', lazy='joined')
 
+
 class City(Base, CustomSerializerMixin):
 	__tablename__ = 'city'
 
@@ -43,6 +47,7 @@ class City(Base, CustomSerializerMixin):
 	cityName = Column('cityName', String(45), nullable = False)
 	idState = Column('idState', Integer, ForeignKey(State.id), nullable = False)
 	state = relationship(State, backref='city', lazy='joined')
+
 
 class User(Base, CustomSerializerMixin):
 	__tablename__ = 'user'
@@ -58,12 +63,14 @@ class User(Base, CustomSerializerMixin):
 	password = Column('password', String(60), nullable=False)
 	role = Column('role', Integer, nullable=False)
 
+
 class UserSchema(SQLAlchemyAutoSchema):
 	class Meta:
 		model = User
 		include_relationships = True
 		load_instance = True
 		include_fk = True
+
 
 class PostOffice(Base, CustomSerializerMixin):
 	__tablename__ = 'postoffice'
@@ -76,6 +83,7 @@ class PostOffice(Base, CustomSerializerMixin):
 	city = relationship(City, backref='postoffice', lazy='joined')
 	address = Column('address', String(45), nullable=False)
 
+
 class ProductType(Base, CustomSerializerMixin):
 	__tablename__ = 'producttype'
 
@@ -83,6 +91,7 @@ class ProductType(Base, CustomSerializerMixin):
 
 	id = Column('id', Integer, primary_key=True, autoincrement=True, nullable=False)
 	TypeName = Column('typeName', String(45), nullable=False)
+
 
 class ShipmentType(Base, CustomSerializerMixin):
 	__tablename__ = 'shipmenttype'
@@ -92,6 +101,7 @@ class ShipmentType(Base, CustomSerializerMixin):
 	id = Column('id', Integer, primary_key=True, autoincrement=True, nullable=False)
 	name = Column('name', String(45), nullable=False)
 
+
 class PaymentType(Base, CustomSerializerMixin):
 	__tablename__ = 'paymenttype'
 
@@ -99,6 +109,7 @@ class PaymentType(Base, CustomSerializerMixin):
 
 	id = Column('id', Integer, primary_key=True, autoincrement=True, nullable=False)
 	paymentTypeName = Column('paymentTypeName', String(45), nullable=False)
+
 
 class Seller(Base, CustomSerializerMixin):
 	__tablename__ = 'seller'
@@ -116,12 +127,14 @@ class Seller(Base, CustomSerializerMixin):
 	description = Column('description', String(200))
 	approximatelyPrice = Column('approximatelyPrice', Integer)
 
+
 class SellerSchema(SQLAlchemyAutoSchema):
 	class Meta:
 		model = Seller
 		include_relationships = True
 		load_instance = True
 		include_fk = True
+
 
 class Shipment(Base, CustomSerializerMixin):
 	__tablename__ = 'shipment'
@@ -147,6 +160,7 @@ class Shipment(Base, CustomSerializerMixin):
 	idSeller = Column('idSeller', Integer, ForeignKey(Seller.id), nullable=False)
 	seller = relationship(Seller, backref='shipment', lazy='joined')
 
+
 class ShipmentSchema(SQLAlchemyAutoSchema):
 	class Meta:
 		model = Shipment
@@ -154,12 +168,14 @@ class ShipmentSchema(SQLAlchemyAutoSchema):
 		load_instance = True
 		include_fk = True
 
+
 class ShipmentStatusName(Base, CustomSerializerMixin):
 	__tablename__ = 'shipmentstatusname'
 
 	serialize_only = {'id', 'statusName'}
 	id = Column('id', Integer, primary_key=True, autoincrement=True, nullable=False)
 	statusName = Column('statusName', String(45), nullable=False)
+
 
 class ShipmentStatus(Base, CustomSerializerMixin):
 	__tablename__ = 'shipmentstatus'
@@ -176,6 +192,7 @@ class ShipmentStatus(Base, CustomSerializerMixin):
 	statusTime = Column('statusTime', DATETIME, nullable=False)
 
 	details = Column('details', String(200))
+
 
 class PaymentDetails(Base, CustomSerializerMixin):
 	__tablename__ = 'paymentdetails'

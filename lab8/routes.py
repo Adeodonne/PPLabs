@@ -1,20 +1,18 @@
-from flask import Flask, request, render_template
-from waitress import serve
+from flask import Flask, request, render_template, jsonify
+# from waitress import serve
 from models import *
 from marshmallow import validate, ValidationError
-from flask_bcrypt import Bcrypt
+from flask_jwt_extended import *
+import bcrypt
 import json
 
 
 app = Flask(__name__)
-bcrypt = Bcrypt(app)
-@app.route('/api/v1/hello-world-2', methods=['GET'])
-def helloorld():
-    return 'Hello World 2!'
+app.config["JWT_SECRET_KEY"] = "secret"
+# app.config["ADMIN_SECRET_KEY"] = "extra-secret"
+jwt = JWTManager(app)
+# bcrypt = Bcrypt(app)
 
-@app.route('/', methods=['GET'])
-def helloworld():
-    return 'Hello World 2!'
 
 @app.route('/user/', methods=['GET']) # http://0.0.0.0:8080/user/?id=0
 def FindUser():
@@ -22,6 +20,7 @@ def FindUser():
     id = args.get('id')
     users = Session.query(User).filter(User.id == id)
     return json.dumps([i.to_dict() for i in users])
+
 
 """
 Example for post
@@ -32,31 +31,39 @@ Example for post
     "idCity": 0,
     "phoneNumber": "+380111111111",
     "password": "User1Password",
-    "role": 0  
+    "role": 0
 }
 """
+
+
 @app.route('/user', methods=['POST'])
 def NewUser():
     args = request.get_json()
     try:
         user_schema = UserSchema()
+        hashed = bcrypt.hashpw(args["password"].encode("utf-8"), bcrypt.gensalt())
+        args["password"] = hashed
         user = user_schema.load(args, session=session)
-        #user.Password = bcrypt.generate_password_hash(user.password)
         session.add(user)
         session.commit()
-        return user_schema.dump(user)
+        access_token = create_access_token(identity = args["id"])
+        return {"access_token": access_token}, 200
     except ValidationError as err:
         return json.dumps({'success':False, 'status':400, "error":str(err)}), 400, {'ContentType':'application/json'}
 
-@app.route('/user/', methods=['DELETE']) # http://0.0.0.0:8080/user/?id=1
-def DeleteUser():
+
+@app.route('/user/<int:id>', methods=['DELETE']) # http://0.0.0.0:8080/user/?id=1
+@jwt_required()
+def DeleteUser(id):
+    if not protect()["access"]:
+        return {"Error": "Not enough rights"}, 200
+
     session = Session()
-    args = request.args
-    id = args.get('id')
     session.query(User).filter(User.id == id).delete()
     session.commit()
     session.close()
-    return "User deleted"
+    return {"Result": "Successful"}, 200
+
 
 @app.route('/shipment/', methods=['GET'])
 def FindShipment():
@@ -64,6 +71,7 @@ def FindShipment():
     id = args.get('id')
     shipments = Session.query(Shipment).filter(Shipment.id == id)
     return json.dumps([i.to_dict() for i in shipments])
+
 
 """
 Example for post
@@ -74,11 +82,16 @@ Example for post
     "idPostOfficeSender": 0,
     "sendTime": "2011-04-15 00:03:20",
     "description": "Description0",
-    "approximatelyPrice" : 0   
+    "approximatelyPrice" : 0
 }
 """
+
+
 @app.route('/shipment', methods=['POST'])
+@jwt_required()
 def CreateShipment():
+    user_id = get_jwt_identity()
+
     args = request.get_json()
     try:
         shipmentSchema = ShipmentSchema()
@@ -89,8 +102,12 @@ def CreateShipment():
     except ValidationError as err:
         return json.dumps({'success':False, 'status':400, "error":str(err)}), 400, {'ContentType':'application/json'}
 
+
 @app.route('/shipment/', methods=['DELETE'])
+@jwt_required()
 def DeleteShipment():
+    user_id = get_jwt_identity()
+
     session = Session()
     args = request.args
     id = args.get('id')
@@ -99,12 +116,17 @@ def DeleteShipment():
     session.close()
     return "Shipment deleted"
 
+
 @app.route('/seller/', methods=['GET'])
+@jwt_required()
 def FindSeller():
+    user_id = get_jwt_identity()
+
     args = request.args
     id = args.get('id')
     sellers = Session.query(Seller).filter(Seller.id == id)
     return json.dumps([i.to_dict() for i in sellers])
+
 
 """
 Example for post
@@ -115,11 +137,16 @@ Example for post
     "reciveTime": "2011-04-15 00:03:20",
     "idPostOffice" : 0,
     "idProductType": 0,
-    "idSeller" : 0   
+    "idSeller" : 0
 }
 """
+
+
 @app.route('/seller', methods=['POST'])
+@jwt_required()
 def CreateSeller():
+    user_id = get_jwt_identity()
+
     args = request.get_json()
     try:
         sellerSchema = SellerSchema()
@@ -130,8 +157,12 @@ def CreateSeller():
     except ValidationError as err:
         return json.dumps({'success':False, 'status':400, "error":str(err)}), 400, {'ContentType':'application/json'}
 
+
 @app.route('/seller/', methods=['DELETE'])
+@jwt_required()
 def DeleteSeller():
+    user_id = get_jwt_identity()
+
     session = Session()
     args = request.args
     id = args.get('id')
@@ -140,9 +171,40 @@ def DeleteSeller():
     session.close()
     return "Seller deleted"
 
-if __name__ == '__main__':
-    app.run(debug=True, threaded=True)
-    serve(app)
 
-#cd Lab4
-#waitress-serve routes:app
+@app.route('/user/login', methods = ['GET'])
+def login():
+    args = request.get_json()
+    phone = args["phoneNumber"]
+    password = args["password"]
+
+    user = session.query(User).filter(User.phoneNumber == phone)
+
+    cPassword = ""
+    id = 0
+    for row in user:
+        id = row.to_dict()["id"]
+        cPassword = row.to_dict()["password"]
+
+    if cPassword == "" or not bcrypt.checkpw(password.encode("utf-8"), cPassword.encode("utf-8")):
+        return {"Error": "invalid input"}, 405
+
+    access_token = create_access_token(identity = id)
+    return {"access_token": access_token}, 200 #jsonify(access_toke = access_token)
+
+
+def protect():
+    id = get_jwt_identity()
+
+    result = session.query(User).filter(User.id == id)
+
+    role = False
+
+    for row in result:
+        role = bool(row.to_dict()["role"])
+
+    return {"access": True} if role else {"access": False}
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port = 5000, host = "127.0.0.1")
